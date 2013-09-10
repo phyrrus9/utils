@@ -1,4 +1,5 @@
 /* Disk wiper/zero utility -- Copyright © 2013 phyrrus9 */
+
 #include <fcntl.h>
 #include <stdio.h>
 #include <sys/param.h>
@@ -46,6 +47,9 @@ void write_zero(char * file, unsigned long bytes, int run, unsigned long long ob
 	double bps = 0, tot_time = 0, rem_time = 0;
 	char first = 1;
     int hours = 0, mins = 0, secs = 0,remainder = 0;
+    char progress = '|', printed = 0x0;
+    int progress_size = 100;
+    struct winsize terminal_size;
 
     printf("Writing 0x%llx to %s (pass #%d)\n", obj, file, run);
     out = fopen(file, "wb");
@@ -65,18 +69,42 @@ void write_zero(char * file, unsigned long bytes, int run, unsigned long long ob
 		}
 		if (wrote % ((1024 * 1024)) == 0) //every 5MB
 		{
-			printf("\r%101s\r[", " "); //blank it
+            ioctl(STDOUT_FILENO, TIOCGWINSZ, &terminal_size); //get xsize
+            progress_size = terminal_size.ws_col - 25; //determine width of progress bar
+            
+            printed = 0x0;
+			printf("\r"); //blank it
+            for (i = 0; i < terminal_size.ws_col - 1; i++)
+                printf(" ");
+            printf("\r[");
 			total = ((double)((double)wrote / (double)bytes) * 100);
-			for (i = 0; i < 100; i++)
+			for (i = 0; i < progress_size; i++)
 			{
-				if (i <= total)
+				if (i < total)
 				{
 					printf("=");
 				}
-				else
-				{
-					printf(" ");
-				}
+                else if (i + 1 < progress_size && printed == 0x0)
+                {
+                    putchar(progress);
+                    switch (progress)
+                    {
+                        case '|':
+                            progress = '/';
+                            break;
+                        case '/':
+                            progress = '-';
+                            break;
+                        case '-':
+                            progress = 92;
+                            break;
+                        case 92:
+                            progress = '|';
+                            break;
+                    }
+                    printed = 0x1;
+                }
+                printf(" ");
 			}
 			printf("] %.2f%% ", ((double)wrote/(double)bytes * 100));
 			rem_time = bps * (bytes - wrote);
@@ -155,7 +183,7 @@ int main(int argc, char * * argv)
     int nruns = 1, i, pat;
     char loop = 0x0;
     unsigned long long obj = 0x0;
-    
+
     printf("==============================================\n"
            "=Phyrrus9's drive eraser. Copyright (c) 2013 =\n"
            "=Will erase and write zeros over entire block=\n"
@@ -170,7 +198,8 @@ int main(int argc, char * * argv)
                "-hp\tPrint patterns\n"
                "-c\tNumber of passes\n"
                "-p\tPattern select\n"
-               "-l\tLoop through patterns\n", argv[0]);
+               "-l\tLoop through patterns\n"
+               "-y\tDon't ask for permission--WARNING\n", argv[0]);
         return 1;
     }
     if (strcmp(argv[1], "-hp") == 0)
