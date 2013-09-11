@@ -27,12 +27,12 @@
 #define pat7 0x0123456789012345 /*numeric*/
 #define pat8 0xABCDEFABCDEFABCD /*alpha*/
 
-FILE *out;
+FILE *out; //our only global variable, the output (disk) file
 
 void sighandler(int sig)
 {
-    printf("\nSignal caught! Oh no! Shutting down\n");
-    if (out != NULL)
+    printf("\n^C caught! Oh no! Shutting down\n");
+    while (out != NULL) //ensure we close all of them
         fclose(out);
     exit(2);
 }
@@ -107,17 +107,17 @@ void write_zero(char * file, unsigned long bytes, int run, unsigned long long ob
                 printf(" ");
 			}
 			printf("] %.2f%% ", ((double)wrote/(double)bytes * 100));
-			rem_time = bps * (bytes - wrote);
+			rem_time = bps * (bytes - wrote); //remaining time in seconds
             hours = rem_time / 3600;
             remainder = (int)rem_time % 3600;
             mins = remainder / 60;
             secs = remainder % 60;
-            if (hours < 1)
+            if (hours < 1) //mm:ss
                 printf("ETA: %02d:%02d", mins, secs);
             else if (hours < 24)
-                printf("ETA: %02d:%02d:%02d", hours, mins, secs);
+                printf("ETA: %02d:%02d:%02d", hours, mins, secs); //hh:mm:ss
             else
-                printf("no eta (too long)");
+                printf("no eta (too long)"); //this should never happen
 			fflush(stdout);
 		}
 	}
@@ -126,6 +126,7 @@ void write_zero(char * file, unsigned long bytes, int run, unsigned long long ob
 	printf("\n");
 }
 
+///fix this function, clean it up a bit
 void set_pattern(int pat, unsigned long long * obj)
 {
     int i;
@@ -158,6 +159,9 @@ void set_pattern(int pat, unsigned long long * obj)
         case 8:
             *obj = pat8;
             break;
+        default:
+            *obj = pat0;
+            break;
     }
 }
 
@@ -181,7 +185,7 @@ int main(int argc, char * * argv)
     unsigned long blocks = 0;
     char check = 0x0;
     int nruns = 1, i, pat;
-    char loop = 0x0;
+    char loop = 0x0, yes = 0x0;
     unsigned long long obj = 0x0;
 
     printf("==============================================\n"
@@ -233,6 +237,10 @@ int main(int argc, char * * argv)
             {
                 loop = 0x1;
             }
+            if (strcmp(argv[i], "-y") == 0)
+            {
+                yes = 0x1;
+            }
         }
     }
 
@@ -245,11 +253,13 @@ int main(int argc, char * * argv)
                 blocks, blocks * 512, (double)blocks * 512.0 / (1024 * 1024 * 1024));
     do
     {
+        if (yes == 0x1)
+            break;
         printf("Write 0x%llx to %s with %d passes? [y/N] ", obj, argv[1], nruns);
         fflush(stdout);
     }
     while (scanf("%c", &check) < 1);
-    if (check == 'y')
+    if (check == 'y' || yes == 0x1)
     {
         for (i = 0; i < nruns; i++)
         {

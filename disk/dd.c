@@ -65,15 +65,62 @@ unsigned long long getsize(char * filename, ftype_t ftype)
     if (ftype == BLOCK)
     {
         fd = open(filename, O_RDONLY);
-        ioctl(fd, BLKGETSIZE, &blocks);
+        ioctl(fd, BLKGETSIZE, &fd_blocks);
         close(fd);
-        return blocks * 512;
+        return fd_blocks * 512;
     }
     return 0; //implement me later
 }
 
+void copy_data(char * infile, char * outfile, long bytes)
+{
+    FILE * in =  fopen(infile, "rb");
+    FILE * out = fopen(outfile, "wb"); //this will truncate it!
+    short read = 0x0;
+    
+    while (in != NULL && (read = fgetc(in)) != EOF)
+    {
+        fputc(read, out);
+    }
+    
+    fclose(in);
+    fclose(out);
+}
+
 int main(int argc, char * * argv)
 {
-    ftype_t a = filetype(argv[1]);
-    printf("Type: %x\tSize: %llub\n", a, getsize(argv[1], a));
+    ftype_t in_type, out_type;
+    int in_index, out_index;
+    long bytes = -1; //optional, <0=copy entire file
+    int i;
+    
+    if (argc < 4)
+    {
+        printf("Usage: %s -i <infile> -o <outfile> [optional args]\n"
+               "-i\tInput file\n"
+               "-o\tOutput file\n"
+               "-c\tNumber of bytes to copy\n", argv[0]);
+        for (i = 1; i < argc; i++)
+        {
+            if (strcmp(argv[i], "-i") == 0)
+            {
+                in_index = i + 1;
+                i++;
+            }
+            if (strcmp(argv[i], "-o") == 0)
+            {
+                out_index = i + 1;
+                i++;
+            }
+            if (strcmp(argv[i], "-c") == 0)
+            {
+                bytes = atol(argv[i + 1]);
+                i++;
+            }
+        }
+    }
+    out_type = filetype(argv[out_index]);
+    in_type = filetype(argv[in_index]);
+    printf("Input\tType: %x\tSize: %llub\n", in_type, getsize(argv[in_index], in_type));
+    printf("Outut\tType: %x\tSize: %llub\n", out_type, getsize(argv[out_index], out_type));
 }
