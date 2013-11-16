@@ -255,7 +255,7 @@ int main(int argc, char * * argv)
     {
         if (yes == 0x1)
             break;
-        printf("Write 0x%llx to %s with %d passes? [y/N] ", obj, argv[1], nruns);
+        printf("Write 0x%llx to %s with %d passes and loop=%x? [y/N] ", obj, argv[1], nruns, loop);
         fflush(stdout);
     }
     while (scanf("%c", &check) < 1);
